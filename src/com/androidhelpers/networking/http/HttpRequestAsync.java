@@ -13,17 +13,19 @@ public class HttpRequestAsync extends HttpRequest {
 
     public HttpRequestAsync(String url, Map<String, String> params, HttpMethods method) throws IOException {
         super(url, params, method);
+
+        handler = new HttpHandler();
     }
 
     public Runnable create() {
         return new Runnable() {
             @Override
             public void run() {
-                try {
-                    start();
-                } catch (IOException e) {
-                    getHandler().postException(e);
-                }
+            try {
+                start();
+            } catch (IOException e) {
+                getHandler().postException(e);
+            }
             }
         };
     }

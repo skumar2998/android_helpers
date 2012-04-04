@@ -4,6 +4,8 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Handler;
 import android.os.Message;
+import android.util.Log;
+import com.androidhelpers.common.MinPriorityThreadFactory;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -36,13 +38,15 @@ public class RemoteBitmap {
     private final int maxCacheSize;
     private final String cachedDirPath;
     private final ExecutorService pool;
+    private final ExecutorService savePool;
 
     public interface OnBitmapGet {
-        void bitmapRecieved(Bitmap bitmap);
+        void bitmapRecieved(Bitmap bitmap, Integer urlHash);
     }
 
     public RemoteBitmap(int threadsNumber, int maxCachedCount, String cachedDirPath) throws IOException {
         pool = Executors.newFixedThreadPool(threadsNumber);
+        savePool = Executors.newFixedThreadPool(threadsNumber, new MinPriorityThreadFactory());
         cache = new HashMap<Integer, SoftReference<Bitmap>>();
         handlers = new HashMap<Integer, ArrayList<Handler>>();
 
@@ -64,9 +68,7 @@ public class RemoteBitmap {
         return null;
     }
 
-    private Bitmap putBitmapToCache(Integer urlHash, int width, int height) {
-
-        Bitmap bitmap = BitmapFactory.decodeFile(cachedDirPath + urlHash);
+    private Bitmap putBitmapToCache(Bitmap bitmap, Integer urlHash, int width, int height) {
 
         if (width != 0 && height != 0)
             bitmap = Bitmap.createScaledBitmap(bitmap, width, height, true);
@@ -90,7 +92,7 @@ public class RemoteBitmap {
 
                 @Override
                 public void handleMessage(Message msg) {
-                    onBitmapGet.bitmapRecieved((Bitmap) msg.obj);
+                    onBitmapGet.bitmapRecieved((Bitmap) msg.obj, msg.what);
                 }
             });
     }
@@ -101,7 +103,7 @@ public class RemoteBitmap {
             if (handlers.containsKey(urlHash)) {
                 ArrayList<Handler> handlerList = handlers.get(urlHash);
                 for(Handler onCoverGet : handlerList) {
-                    onCoverGet.sendMessage(Message.obtain(onCoverGet, 0, getBitmapFromCache(urlHash)));
+                    onCoverGet.sendMessage(Message.obtain(onCoverGet, urlHash, getBitmapFromCache(urlHash)));
                 }
 
                 handlers.remove(urlHash);
@@ -126,49 +128,54 @@ public class RemoteBitmap {
             }
         }
 
+        Bitmap cachedBitmap = getBitmapFromCache(hashKey);
+        if (cachedBitmap != null) {
+            SetHandlersMessage(hashKey);
+            return;
+        }
+
         pool.submit(new Runnable() {
             @Override
             public void run() {
 
-                Bitmap cachedBitmap = getBitmapFromCache(hashKey);
-                if (cachedBitmap != null) {
-                    SetHandlersMessage(hashKey);
-                    return;
-                }
-
-                boolean shouldDownload = true;
-
                 final File newFile = new File(cachedDirPath, hashKey.toString());
-
                 if (newFile.exists()) {
                     Bitmap bitmap = BitmapFactory.decodeFile(newFile.getAbsolutePath());
                     if (bitmap != null) {
-                        putBitmapToCache(hashKey, width, height);
+                        putBitmapToCache(bitmap, hashKey, width, height);
                         SetHandlersMessage(hashKey);
 
-                        shouldDownload = false;
+                        return;
                     }
                 }
 
-                if (shouldDownload) {
+                try {
+                    final FileOutputStream fos = new FileOutputStream(newFile);
+                    InputStream inputStream = getInputStream(url);
 
-                    try {
-                        final FileOutputStream fos = new FileOutputStream(newFile);
-                        InputStream inputStream = getInputStream(url);
+                    final Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+                    if (bitmap != null) {
 
-                        Bitmap drawable = BitmapFactory.decodeStream(inputStream);
-                        if (drawable != null) {
-                            drawable.compress(Bitmap.CompressFormat.PNG, 100, fos);
+                        putBitmapToCache(bitmap, hashKey, width, height);
+                        SetHandlersMessage(hashKey);
 
-                            putBitmapToCache(hashKey, width, height);
-                            SetHandlersMessage(hashKey);
-                        }
-
-                    } catch (MalformedURLException e) {
-                        e.printStackTrace();
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                        Log.i("test", "start");
+                        savePool.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
+                            }
+                        });
+                        Log.i("test", "stop");
+                        //Thread saveThread = new Thread();
+                        //saveThread.setPriority(Thread.MIN_PRIORITY);
+                        //saveThread.start();
                     }
+
+                } catch (MalformedURLException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
             }
         });

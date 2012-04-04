@@ -5,6 +5,7 @@ import android.os.Message;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.Map;
 
 /**
@@ -25,17 +26,16 @@ public class HttpRequest {
 
     private static final int MAX_BUFFER_SIZE = 4096;
 
+    protected HttpHandler handler;
+
     private HttpMethods method;
     private HttpURLConnection connection;
     private String params;
     private boolean shouldStop;
-    private HttpHandler handler;
     private long downloadFrom;
     private boolean willCache;
 
     public HttpRequest(String url, Map<String, String> params, HttpMethods method) throws IOException {
-        handler = new HttpHandler();
-
         create(method, params);
 
         String finishedUrl = url;
@@ -45,6 +45,11 @@ public class HttpRequest {
         URL urlData = new URL(finishedUrl);
         connection = (HttpURLConnection) urlData.openConnection();
         connection.setUseCaches(false);
+    }
+
+    private void sendStateMessage(Message message) {
+        if (handler != null)
+            handler.sendMessage(message);
     }
 
     private void create(HttpMethods method, Map<String, String> params) {
@@ -59,7 +64,7 @@ public class HttpRequest {
 
                 sb.append(key);
                 sb.append("=");
-                sb.append(params.get(key));
+                sb.append(URLEncoder.encode(params.get(key)));
                 i++;
             }
             this.params = sb.toString();
@@ -84,18 +89,18 @@ public class HttpRequest {
 
         if (!isValidResponceCode(connection.getResponseCode())) {
 
-            handler.sendMessage(Message.obtain(handler, DID_ERROR,
+            sendStateMessage(Message.obtain(handler, DID_ERROR,
                     new Exception("HTTP response code " + connection.getResponseCode())));
             return "";
         }
 
         int contentLength = connection.getContentLength();
-        handler.sendMessage(Message.obtain(handler, DID_START, contentLength));
+        sendStateMessage(Message.obtain(handler, DID_START, contentLength));
 
         long downloaded = 0;
         in = connection.getInputStream();
 
-        BufferedReader inR = new BufferedReader(new InputStreamReader(in));
+        BufferedReader inR = new BufferedReader(new InputStreamReader(in), 100*1024);
         StringBuilder sb = new StringBuilder("");
         String line;
         while ((line = inR.readLine()) != null) {
@@ -105,35 +110,11 @@ public class HttpRequest {
             if(!willCache)
                 sb.append(line);
             else
-                handler.sendMessage(Message.obtain(handler, IS_CACHING, line.getBytes()));
+                sendStateMessage(Message.obtain(handler, IS_CACHING, line.getBytes()));
 
-            handler.sendMessage(Message.obtain(handler, IS_DOWNLOADING, downloaded + downloadFrom));
+            sendStateMessage(Message.obtain(handler, IS_DOWNLOADING, downloaded + downloadFrom));
         }
         response = sb.toString();
-        /*while (!shouldStop) {
-
-            byte buffer[] = new byte[MAX_BUFFER_SIZE];
-            int read = in.read(buffer);
-            if (read == -1)
-                break;
-
-            byte outBuffer[];
-            if (read != MAX_BUFFER_SIZE) {
-                outBuffer = new byte[read];
-                System.arraycopy(buffer, 0, outBuffer, 0, read);
-            }
-            else
-                outBuffer = buffer;
-
-            downloaded += read;
-
-            if(!willCache)
-                response += new String(outBuffer);
-            else
-                handler.sendMessage(Message.obtain(handler, IS_CACHING, outBuffer));
-
-            handler.sendMessage(Message.obtain(handler, IS_DOWNLOADING, downloaded + downloadFrom));
-        }*/
         return response;
     }
 
@@ -147,7 +128,7 @@ public class HttpRequest {
         connection.setDoOutput(true);
         connection.connect();
 
-        handler.sendMessage(Message.obtain(handler, DID_START));
+        sendStateMessage(Message.obtain(handler, DID_START));
 
         out = connection.getOutputStream();
 
@@ -163,7 +144,7 @@ public class HttpRequest {
             totalRead += bytesRead;
 
             out.write(buffer, 0, bytesRead);
-            handler.sendMessage(Message.obtain(handler, IS_UPLOADING, totalRead));
+            sendStateMessage(Message.obtain(handler, IS_UPLOADING, totalRead));
         }
 
         if (!isValidResponceCode(connection.getResponseCode())) {
@@ -215,12 +196,15 @@ public class HttpRequest {
         }
 
         if (!response.equals("") || willCache) {
-            Object result = handler.postProcessResponse(response);
+            Object result = response;
+            if (handler != null)
+                result = handler.postProcessResponse(response);
+
             if (result != null)
-                handler.sendMessage(Message.obtain(handler, DID_SUCCEED, result));
+                sendStateMessage(Message.obtain(handler, DID_SUCCEED, result));
         }
         else
-            handler.sendMessage(Message.obtain(handler, DID_ERROR, new Exception("Empty response.")));
+            sendStateMessage(Message.obtain(handler, DID_ERROR, new Exception("Empty response.")));
 
         return response;
     }

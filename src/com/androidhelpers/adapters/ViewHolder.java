@@ -8,8 +8,8 @@ import android.view.View;
  * Date: 3/17/12
  * Time: 5:09 PM
  */
-public abstract class ViewHolder
+public interface ViewHolder<T>
 {
-    public abstract void create(View rowView);
-    public abstract void formatHolder(ReusableArrayAdapter adapter, int position);
+    public void create(View rowView);
+    public void formatHolder(ReusableArrayAdapter<T> adapter, int position);
 }

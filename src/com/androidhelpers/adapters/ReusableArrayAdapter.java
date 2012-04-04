@@ -17,28 +17,31 @@ import java.util.List;
 public class ReusableArrayAdapter<T> extends ArrayAdapter<T> {
 
     private int layoutId;
-    private Class<? extends ViewHolder> holderClass;
+    private Class<? extends ViewHolder<T>> holderClass;
 
     public ReusableArrayAdapter(Context context, int layoutResourceId,
-                                Class<? extends ViewHolder> holderClass, List<T> items) {
+                                Class<? extends ViewHolder<T>> holderClass, List<T> items) {
         super(context, 0, items);
 
         this.layoutId = layoutResourceId;
         this.holderClass = holderClass;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
 
-        ViewHolder holder;
+        ViewHolder holder = null;
         View rowView = convertView;
         if (rowView == null) {
             LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
             rowView = inflater.inflate(layoutId, null, true);
 
             try {
-                holder = holderClass.newInstance();
-                holder.create(rowView);
+                if (holderClass != null) {
+                    holder = holderClass.newInstance();
+                    holder.create(rowView);
+                }
             } catch (InstantiationException e) {
                 throw new RuntimeException(e);
             } catch (IllegalAccessException e) {
