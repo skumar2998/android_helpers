@@ -8,28 +8,34 @@ import android.view.ViewGroup;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ViewPagerAdapter extends PagerAdapter {
+public class ViewPagerAdapter<T> extends PagerAdapter {
 
-    private List<? extends View> viewList;
+    private List<T> itemsList;
+    private ViewPagerHolder<T> holder;
 
-    public ViewPagerAdapter(List<? extends View> viewList)
+    public ViewPagerAdapter(List<T> itemsList, ViewPagerHolder<T> holder)
     {
-        this.viewList = viewList;
+        this.itemsList = itemsList;
+        this.holder = holder;
 
-        if (viewList == null)
-            this.viewList = new ArrayList<View>();
+        if (itemsList == null)
+            this.itemsList = new ArrayList<T>();
     }
 
     @Override
     public int getCount()
     {
-        return viewList.size();
+        return itemsList.size();
     }
 
     @Override
     public Object instantiateItem(ViewGroup pager, int position) {
 
-        View v = viewList.get(position);
+        View v = null;
+        if (holder != null) {
+            v = holder.createView(itemsList.get(position));
+        }
+
         pager.addView(v, 0);
         return v;
     }

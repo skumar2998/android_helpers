@@ -4,7 +4,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Handler;
 import android.os.Message;
-import android.util.Log;
 import com.androidhelpers.common.MinPriorityThreadFactory;
 
 import java.io.File;
@@ -159,17 +158,12 @@ public class RemoteBitmap {
                         putBitmapToCache(bitmap, hashKey, width, height);
                         SetHandlersMessage(hashKey);
 
-                        Log.i("test", "start");
                         savePool.submit(new Runnable() {
                             @Override
                             public void run() {
                                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
                             }
                         });
-                        Log.i("test", "stop");
-                        //Thread saveThread = new Thread();
-                        //saveThread.setPriority(Thread.MIN_PRIORITY);
-                        //saveThread.start();
                     }
 
                 } catch (MalformedURLException e) {
