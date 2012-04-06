@@ -6,10 +6,7 @@ import android.os.Handler;
 import android.os.Message;
 import com.androidhelpers.common.MinPriorityThreadFactory;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.lang.ref.SoftReference;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
@@ -39,23 +36,27 @@ public class RemoteBitmap {
     private final ExecutorService pool;
     private final ExecutorService savePool;
 
+    private boolean disableDiskCache;
+
     public interface OnBitmapGet {
         void bitmapRecieved(Bitmap bitmap, Integer urlHash);
     }
 
-    public RemoteBitmap(int threadsNumber, int maxCachedCount, String cachedDirPath) throws IOException {
+    public RemoteBitmap(int threadsNumber, int maxCachedCount, String cachedDirPath) {
         pool = Executors.newFixedThreadPool(threadsNumber);
-        savePool = Executors.newFixedThreadPool(threadsNumber, new MinPriorityThreadFactory());
+        savePool = Executors.newFixedThreadPool(1, new MinPriorityThreadFactory());
         cache = new HashMap<Integer, SoftReference<Bitmap>>();
         handlers = new HashMap<Integer, ArrayList<Handler>>();
 
         this.maxCacheSize = maxCachedCount;
         this.cachedDirPath = cachedDirPath;
 
+        disableDiskCache = false;
+
         File cacheDir = new File(cachedDirPath);
         if ( !cacheDir.exists() ) {
             if ( !cacheDir.mkdirs() )
-                throw new IOException("Unable to create cache folder");
+                disableDiskCache = true;
         }
     }
 
@@ -138,7 +139,7 @@ public class RemoteBitmap {
             public void run() {
 
                 final File newFile = new File(cachedDirPath, hashKey.toString());
-                if (newFile.exists()) {
+                if (!disableDiskCache && newFile.exists()) {
                     Bitmap bitmap = BitmapFactory.decodeFile(newFile.getAbsolutePath());
                     if (bitmap != null) {
                         putBitmapToCache(bitmap, hashKey, width, height);
@@ -149,7 +150,6 @@ public class RemoteBitmap {
                 }
 
                 try {
-                    final FileOutputStream fos = new FileOutputStream(newFile);
                     InputStream inputStream = getInputStream(url);
 
                     final Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
@@ -158,12 +158,20 @@ public class RemoteBitmap {
                         putBitmapToCache(bitmap, hashKey, width, height);
                         SetHandlersMessage(hashKey);
 
-                        savePool.submit(new Runnable() {
-                            @Override
-                            public void run() {
-                                bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
-                            }
-                        });
+                        if (!disableDiskCache) {
+
+                            savePool.submit(new Runnable() {
+                                @Override
+                                public void run() {
+                                    try {
+                                        FileOutputStream fos = new FileOutputStream(newFile);
+                                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
+                                    } catch (FileNotFoundException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                            });
+                        }
                     }
 
                 } catch (MalformedURLException e) {

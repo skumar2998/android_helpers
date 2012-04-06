@@ -34,9 +34,10 @@ public class ViewPagerAdapter<T> extends PagerAdapter {
         View v = null;
         if (holder != null) {
             v = holder.createView(itemsList.get(position));
+
+            pager.addView(v, 0);
         }
 
-        pager.addView(v, 0);
         return v;
     }
 
@@ -53,5 +54,14 @@ public class ViewPagerAdapter<T> extends PagerAdapter {
     @Override
     public Parcelable saveState() {
         return null;
+    }
+
+    @Override
+    public int getItemPosition(Object object) {
+        return POSITION_NONE;
+    }
+
+    public void setItem(int position, T item) {
+        itemsList.set(position, item);
     }
 }
