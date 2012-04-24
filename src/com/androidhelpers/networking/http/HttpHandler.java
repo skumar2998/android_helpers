@@ -49,7 +49,7 @@ public class HttpHandler extends Handler {
         if (postProcessCallback != null)
             return postProcessCallback.postProcessResponse(this, response);
 
-        return null;
+        return response;
     }
 
     public void postException(Exception e) {
