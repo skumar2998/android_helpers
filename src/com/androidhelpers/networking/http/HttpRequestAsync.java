@@ -21,11 +21,11 @@ public class HttpRequestAsync extends HttpRequest {
         return new Runnable() {
             @Override
             public void run() {
-            try {
-                start();
-            } catch (IOException e) {
-                getHandler().postException(e);
-            }
+                try {
+                    start();
+                } catch (IOException e) {
+                    getHandler().postException(e);
+                }
             }
         };
     }
