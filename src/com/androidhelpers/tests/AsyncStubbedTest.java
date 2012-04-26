@@ -24,6 +24,17 @@ public class AsyncStubbedTest extends InstrumentationTestCase {
         assertTrue("async test timeout.", latch.await(timeout, TimeUnit.SECONDS));
     }
 
+    public void runAsyncTestMainThreadTillTimeout(long timeout, final TestHelper.AsyncTest test) throws Throwable {
+        final CountDownLatch latch = new CountDownLatch(1);
+        runTestOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                test.performTest(latch);
+            }
+        });
+        latch.await(timeout, TimeUnit.SECONDS);
+    }
+
     public void runAsyncTestMainThread(final TestHelper.AsyncTest test) throws Throwable {
         runAsyncTestMainThread(5, test);
     }
