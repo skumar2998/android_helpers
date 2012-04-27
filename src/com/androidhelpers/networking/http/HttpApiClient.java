@@ -44,6 +44,11 @@ public class HttpApiClient {
         pool.submit(httpRequest.create());
     }
 
+    public String getPathSync(String path, Map<String, String> params) throws IOException {
+        HttpRequest httpRequest = new HttpRequest(baseUrl + path, params, HttpMethods.GET);
+        return httpRequest.start();
+    }
+
     public void postPath(String path, Map<String, String> params, HttpCallback callback) throws IOException {
         HttpRequestAsync httpRequest = new HttpRequestAsync(baseUrl + path, params, HttpMethods.POST);
         httpRequest.getHandler().setCallback(callback);
