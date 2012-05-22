@@ -24,7 +24,7 @@ httpRequest.getHandler() returns `HttpHandler` object for the request which allo
     CachingCallback cachingCallback;
     PostProcessCallback postProcessCallback;
 
-PostProcessCallback allows you to process(decoding json, for example) response string in the request thread:
+`PostProcessCallback` allows you to process(decoding json, for example) response string in the request thread:
 
 	new PostProcessCallback() {
         @Override
@@ -33,14 +33,14 @@ PostProcessCallback allows you to process(decoding json, for example) response s
         }
     }
 
-Contains facade for the networking api - HttpApiClient. HttpApiClient possess own pool for networking and allows easier requests with relational url pathes:
+`HttpApiClient` contains facade for the networking api. It possess own pool for networking and allows easier requests with relational url pathes:
 
 	public void getPath(String path, Map<String, String> params, HttpCallback callback)
 	public void postPath(String path, Map<String, String> params, HttpCallback callback)
 
 ## Lazy image loading ##
 
-RemoteBitmap provides simple async image remote Bitmap with memory and disk(if possible) caching:
+`RemoteBitmap` provides simple async image remote `Bitmap` with memory and disk(if possible) caching:
 
 	public void getCover(String url, OnBitmapGet onBitmapGet)
     public void getCover(String url, int width, int height, final OnBitmapGet onBitmapGet)
@@ -50,12 +50,12 @@ RemoteBitmap provides simple async image remote Bitmap with memory and disk(if p
 
 ## Adapters ##
 
-ReusableArrayAdapter provides ArrayAdapter with reusability(via ViewHolder)
+`ReusableArrayAdapter` provides `ArrayAdapter` with reusability(via `ViewHolder`)
 
 	public ReusableArrayAdapter(Context context, int layoutResourceId,
                                 Class<? extends ViewHolder<T>> holderClass, List<T> items)
 
-ViewHolder example:
+`ViewHolder` example:
 
 	public class ForumViewHolder implements ViewHolder<CCForum> {
 
@@ -84,11 +84,11 @@ ViewHolder example:
 	    }
 	}
 
-ReusableArrayAdapter2 provides ArrayAdapter with UITableView-like behaviour:
+`ReusableArrayAdapter2` provides ArrayAdapter with `UITableView`-like behaviour:
 
 	public ReusableArrayAdapter2(Context context, ArrayAdapterDelegate<T> delegate)
 
-ArrayAdapterDelegate contains familiar abstract methods:
+`ArrayAdapterDelegate` contains familiar abstract methods:
 
 	public abstract int sectionCount();
     public abstract int rowsInSectionAtPosition(int position);
@@ -97,7 +97,7 @@ ArrayAdapterDelegate contains familiar abstract methods:
 
 sections implemented via adding additional items to the adapter. Does not contain reusability, so you have to recreate sections and cells for each iteration or implement reusability.
 
-ViewPagerAdapter provides ViewPagerHolder with convinient interfaces:
+`ViewPagerAdapter` provides `ViewPagerHolder` with convinient interfaces:
 
 	ViewPagerAdapter<CCPhoto> adapter =
         new ViewPagerAdapter<CCPhoto>(photos, new ViewPagerHolder<CCPhoto>() {
@@ -112,7 +112,7 @@ ViewPagerAdapter provides ViewPagerHolder with convinient interfaces:
 
 ## Unit testing ##
 
-AsyncStubbedTest is wrapper for async android junit tests through CountDownLatch:
+`AsyncStubbedTest` is wrapper for async android junit tests through `CountDownLatch`:
 
 	runAsyncTestMainThread(2, new TestHelper.AsyncTest() {
         @Override
