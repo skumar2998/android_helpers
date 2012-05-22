@@ -16,7 +16,7 @@ Wrapper for java.net for easier sync and async requests:
     });    
     new Thread(httpRequest.create()).start();
 
-httpRequest.getHandler() returns `HttpHandler` object for the request which allow to subscribe to the several events:
+httpRequest.getHandler() returns `HttpHandler` object for the request which allow to subscribe to several events:
 
 	HttpCallback callback
     UploadCallback uploadCallback;
@@ -33,14 +33,14 @@ httpRequest.getHandler() returns `HttpHandler` object for the request which allo
         }
     }
 
-`HttpApiClient` contains facade for the networking api. It possess own pool for networking and allows easier requests with relational url pathes:
+`HttpApiClient` contains facade for the networking api. It possess own pool for networking and allows easier requests with relational urls:
 
 	public void getPath(String path, Map<String, String> params, HttpCallback callback)
 	public void postPath(String path, Map<String, String> params, HttpCallback callback)
 
 ## Lazy image loading ##
 
-`RemoteBitmap` provides simple async image remote `Bitmap` with memory and disk(if possible) caching:
+`RemoteBitmap` provides simple async remote `Bitmap` loading with memory and disk(if possible) caching:
 
 	public void getCover(String url, OnBitmapGet onBitmapGet)
     public void getCover(String url, int width, int height, final OnBitmapGet onBitmapGet)
